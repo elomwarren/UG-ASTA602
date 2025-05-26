@@ -1,20 +1,40 @@
-# Departement of Statistics and Actuarial Science, University of Ghana
+# Department of Statistics and Actuarial Science, University of Ghana
 # asta602-multivariate-tests.R
 # APPLIED MULTIVARIATE ANALYSIS
 # @author: Elom Kodjoh-Kpakpassou
 # Email: elwkodjoh-kpakpassou@st.ug.edu.gh
 
 
+#______________________________________________________
+# List of packages to install -- to be run once
+# After packages are installed
+
+pkgs <- c(
+    "MVTests", # Multivariate tests
+    "mvhtests", # Multivariate tests
+    "Hotelling", # Hotelling's T^2 Test and Variants
+    "heplots", # Visualization for multivariate tests
+    "energy", # Multivariate normal test
+    "psych", # mardia test of Multivariate normality
+    "dplyr", # data manipulation
+    "codingMatrices", # for contrast matrices (Repeated measures)
+    "readr", # import datasets
+    "ggplot2", # graphics
+    "gridExtra", # graphics tools
+    "ICSNP" # Multivariate tests
+)
+
+install.packages(pkgs)
+
+# Code in this block are to be run once. NO NEED TO REINSTALL THESE PACKAGES AGAIN
+
+#______________________________________________________
+
 # Clear global environment
 rm(list = ls())
 
-# For reproducibility
+# For code reproducibility
 set.seed(123)
-
-# install.packages("MVTests") # Mutlivariate tests
-# install.packages("mvhtests") # Multivariate tests
-# install.packages("Hotelling") # Hotelling's T^2 Test and Variants
-# install.packages("heplots") # Visualization for multivariate tests
 
 
 # #########################
@@ -23,32 +43,35 @@ set.seed(123)
 
 ##########
 # IMPORTS
-# library(Hotelling)
-# library(readxl) # import and write excel files;
+#########
+
+# IMPORT REQUIRED PACKAGES
+
+library(Hotelling)
 library(dplyr) # data manipulation
-
-# library(easystats)
-
-# Multivariate tests
 library(MVTests)
 library(mvhtests)
 library(Hotelling)
+library(heplots)
+library(energy)
+library(psych)
+library(codingMatrices)
+library(readr)
+library(ggplot2)
+library(gridExtra)
+library(MASS) # in-built package to import
+library(ICSNP)
 
 
-#######################################
-# --- 0. MULTIVARIATE NORMALITY tests #
-#######################################
+#############################################
+# --- 0. MULTIVARIATE NORMALITY (MVN) tests #
+#############################################
 
 # Section 7.7, P190, Applied Multivariate Statistics with R Second Edition
 
 ######
 # DATA: Candy data from Applied Multivariate Statistics with R Second Edition Table 7.4 P193
 ######
-
-# filepath <- "/home/elomwarren/Documents/00_MPHIL_STATISTICS/02 YEAR_2/01 GRADUATE ASSISTANT 2024-2025/02-SEM2/ASTA-602/R-Practicals/candy-data/candy_nutrition.xlsx"
-# candy_data <- readxl::read_xlsx(filepath)
-# # remove object
-# rm(filepath)
 
 candy_data <- data.frame(
     Name = c(
@@ -92,13 +115,14 @@ candy_data <- data.frame(
     )
 )
 
-# View the data
-candy_data
+# Visualize the data
+View(candy_data)
 
 # Remove the 'Name' column from the candy dataframe
+# RUN ONLY ONE OF THE FOLLOWING
 
 candy <- candy_data %>% dplyr::select(-Name) # %>% is a dplyr function
-# OR
+# OR similarly
 candy <- candy_data[, -1] # need index of 'Name' column (Here it is 1)
 
 #############################################
@@ -107,30 +131,19 @@ candy <- candy_data[, -1] # need index of 'Name' column (Here it is 1)
 
 # Using Squared Generalized Distances - Mahalanobis distance or Chi-Square Distance (D_j ^2)
 
-# ?mahalanobis
+# ?mahalanobis # help on function
 # Original Mahalanobis distances
 mah_og <- mahalanobis(candy, colMeans(candy), var(candy))
 
-########### SIDE QUEST __________
-# colMeans(candy)
-# candy - colMeans(candy)
-#
-# var(candy)
-#
-# mat <- (as.matrix(candy) - colMeans(candy)) %*% solve(var(candy)) %*% t((as.matrix(candy) - colMeans(candy)))
-#
-# diag(mat)
-# sort(diag(mat))
-########### SIDE QUEST __________
 
 # Sorting while keeping indices
-sorted_idx <- order(mah_og) # returns the indices that would sort mah_og
-mah <- mah_og[sorted_idx] # reorder mah_og by sorted_idx
-sorted_names <- candy_data$Name[sorted_idx]
+sorted_idx <- order(mah_og) # returns the indices that would sort the squared distances in "mah_og"
+mah <- mah_og[sorted_idx] # reorder the squared distances in "mah_og" by the index in "sorted_idx"
+sorted_names <- candy_data$Name[sorted_idx] # Sort the names of the candies by the index in "sorted_idx"
 
-rm(candy_data, mah_og, sorted_idx) # clear object
+rm(candy_data, mah_og, sorted_idx) # clear objects to keep global environment clean
 
-# Why not use sort()
+# Why not use the function sort() ?
 # sort() only gives sorted values — it does not give the indices of how the original elements were rearranged.
 
 # There are p = 6 data columns (calories, fat, saturated fat, carbohydrates, sugar,
@@ -157,17 +170,20 @@ rm(threshold)
 
 # Create QQ plot
 qqplot(chisq_quantiles, mah,
-    main = "QQ Plot of Mahalanobis Distances vs Chi-Squared",
-    xlab = "Theoretical Quantiles (Chi-Squared)",
-    ylab = "Mahalanobis Distances",
-    col = "red", pch = 19
+       main = "QQ Plot of Mahalanobis Distances vs Chi-Squared",
+       xlab = "Theoretical Quantiles (Chi-Squared)",
+       ylab = "Mahalanobis Distances",
+       col = "red", pch = 19
 )
-abline(0, 1, col = "gray") # Straight line of slope 1
-qqline(mah,
-    distribution = function(x) qchisq(x, df = p),
-    col = "green", lwd = 2
-)
-# Add labels ONLY for outliers
+abline(0, 1, col = "black", lwd = 3) # Straight line of slope 1
+
+# qqline(mah,
+#     distribution = function(x) qchisq(x, df = p),
+#     col = "green", lwd = 2
+# )
+
+
+# Add labels for outliers identified
 text(
     x = chisq_quantiles[outliers],
     y = mah[outliers],
@@ -209,7 +225,7 @@ rm(
 
 # Linux system note: install GSL (GNU Scientific Library) system package
 # install.packages("energy")
-library(energy)
+# library(energy)
 energy::mvnorm.etest(candy, R = 999)
 
 # p-value = 0.8238
@@ -222,7 +238,7 @@ energy::mvnorm.etest(candy, R = 999)
 #####################
 # Applied Multivariate Statistics with R Second Edition, P195
 
-library(psych)
+# library(psych)
 psych::mardia(candy)
 # No evidence of extreme multivariate skewness or kurtosis in these data
 
@@ -306,7 +322,7 @@ ICSNP::HotellingsT2(sweet_data, mu = mu0)
 
 # _________________________________
 
-rm(mu0)
+rm(mu0) # remove object mu0
 
 # ______________________________________________________________________________
 
@@ -355,7 +371,8 @@ turtles_male <- data.frame(
 
 n_turtles <- length(turtles_female$Length)
 sex <- rep(1:2, each = n_turtles)
-turtles <- rbind(turtles_female, turtles_male)
+turtles <- rbind(turtles_female, turtles_male) # putting the female and male datasets together
+# first comes the rows in 'turtles_female' then the rows in 'turtles_male'
 
 
 
@@ -430,7 +447,7 @@ rm(sex, n_turtles)
 
 # PAIRED DIFFERENCES ~ MVN
 
-library(ICSNP)
+# library(ICSNP)
 
 # DATA1: ICSNP {ICSNP}
 # ?LASERI
@@ -539,8 +556,8 @@ sleep_dog <- data.frame(
 mvhtests::rm.hotel(as.matrix(sleep_dog), a = 0.05)
 # ...
 
-# User-defined test
-library(codingMatrices)
+# User-defined function for test
+# library(codingMatrices)
 RepeatedMeasures.test <- function(data, alpha) {
     p <- ncol(data) # number of variables
     # https://cran.r-project.org/web/packages/codingMatrices/vignettes/codingMatrices.pdf#page=6.36
@@ -559,7 +576,7 @@ RepeatedMeasures.test <- function(data, alpha) {
         list(
             num.vars = p, size = n, degrees.freedom = dfs, true.mean = xbar,
             dispersion = S, T.squ.stat = T2, CriticalValue = CriticalValue
-            # p.value = p.value
+            p.value = p.value
         )
     )
 }
@@ -595,11 +612,10 @@ RepeatedMeasures.test(sleep_dog, alpha = 0.05)
 
 
 
-
-library(readr)
+# library(readr)
 df <- readr::read_csv("https://reneshbedre.github.io/assets/posts/ancova/manova_data.csv")
 
-library(gridExtra)
+# library(gridExtra)
 
 p1 <- ggplot2::ggplot(df, aes(x = plant_var, y = height, fill = plant_var)) +
     geom_boxplot(outlier.shape = NA) +
@@ -631,11 +647,3 @@ summary(fit)
 # both combined plant height and canopy volume.
 
 
-
-# # _________________________________
-# CODE BELOW TERMINATES R-SESSION
-# mvhtests::maov(dep_vars, df$plant_var)
-#
-# # _________________________________
-#
-mvhtests::maovjames(dep_vars, df$plant_var)
