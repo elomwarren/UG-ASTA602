@@ -1,7 +1,7 @@
-# UG-ASTA602
+# University of Ghana
 
-## Applied Multivariate Analysis
+## MSc. Applied Statistics - ASTA 602
 
---- 
+### Applied Multivariate Analysis
 
 Tutorial sessions
