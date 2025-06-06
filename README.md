@@ -1,2 +1,7 @@
 # UG-ASTA602
-Applied Multivariate Statistics
+
+## Applied Multivariate Analysis
+
+--- 
+
+Tutorial sessions
